@@ -1,0 +1,643 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Тест смысложизненные ориентации (СЖО)</title>
+  <!-- Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    /* Custom transitions for screen changes */
+    .fade-enter { opacity: 0; transform: translateY(10px); }
+    .fade-enter-active { opacity: 1; transform: translateY(0); transition: opacity 0.5s ease, transform 0.5s ease; }
+    .fade-exit { opacity: 1; transform: translateY(0); }
+    .fade-exit-active { opacity: 0; transform: translateY(-10px); transition: opacity 0.5s ease, transform 0.5s ease; }
+  </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+  <main id="app" class="max-w-3xl mx-auto p-4">
+    <!-- Welcome Screen -->
+    <section id="welcome-screen" class="bg-white shadow-md rounded-lg p-6 space-y-4">
+      <h1 class="text-2xl font-semibold">Тест «Смысложизненные ориентации» (СЖО)</h1>
+      <p>
+        Эта методика, разработанная Д. А. Леонтьевым, позволяет оценить, насколько осмысленной
+        человек воспринимает свою жизнь. Тест помогает выявить ориентированность на будущее, насыщенность настоящего
+        и удовлетворенность достигнутыми результатами.
+      </p>
+      <p>
+        Вам будет предложено 20 пар противоположных утверждений. Для каждой пары отметьте
+        позицию на шкале 3&nbsp;2&nbsp;1&nbsp;0&nbsp;1&nbsp;2&nbsp;3, отражающую, какая сторона вам ближе и насколько вы уверены
+        в выборе: 3 — полное согласие с одним утверждением, 0 — равенство, 3 — полное согласие с противоположным.
+      </p>
+      <p class="text-sm text-gray-600">Примерное время прохождения: 5–10 минут. Результаты носят ознакомительный
+        характер и не заменяют консультацию специалиста.</p>
+      <button id="start-btn" class="mt-4 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+        Начать тест
+      </button>
+    </section>
+
+    <!-- Test Screen -->
+    <section id="test-screen" class="hidden flex flex-col items-center space-y-6">
+      <!-- Progress info -->
+      <div id="progress-wrapper" class="w-full">
+        <div class="flex justify-between items-center mb-2">
+          <span id="progress-text" class="text-sm font-medium"></span>
+        </div>
+        <div class="w-full bg-gray-300 rounded h-2">
+          <div id="progress-bar" class="bg-pink-500 h-2 rounded transition-all" style="width:0%"></div>
+        </div>
+      </div>
+      <!-- Single question container -->
+      <div id="question-container" class="w-full flex flex-col items-center"></div>
+      <!-- Navigation buttons: только кнопка «Назад». Она выровнена слева и не выбивается из общего стиля. -->
+      <div id="nav-buttons" class="w-full flex justify-start max-w-md">
+        <button id="prev-btn" class="px-4 py-2 bg-purple-500 text-white rounded hover:bg-purple-600 transition">
+          Назад
+        </button>
+      </div>
+    </section>
+
+    <!-- Result Screen -->
+    <section id="result-screen" class="hidden bg-white shadow-md rounded-lg p-6 space-y-4">
+      <h2 class="text-xl font-semibold">Результаты</h2>
+      <div id="results-container" class="space-y-4"></div>
+      <p class="text-sm text-gray-600">
+        Интерпретация носит ознакомительный характер. Высокие баллы говорят о развитой
+        смысложизненной ориентации, низкие — о её недостаточной выраженности. Помните, что оценки
+        субъективны; для более глубокого понимания рекомендуется консультация психолога.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        <button id="retake-btn" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition">
+          Пройти ещё раз
+        </button>
+        <button id="download-btn" class="px-4 py-2 bg-gray-600 text-white rounded hover:bg-gray-700 transition">
+          Скачать результат
+        </button>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    // Данные теста: пары утверждений в точной формулировке из методики
+    const questions = [
+      {
+        id: 1,
+        statements: [
+          'Обычно мне очень скучно.',
+          'Обычно я полон энергии'
+        ]
+      },
+      {
+        id: 2,
+        statements: [
+          'Жизнь кажется мне всегда волнующей и захватывающей',
+          'Жизнь кажется мне совершенно спокойной и рутинной'
+        ]
+      },
+      {
+        id: 3,
+        statements: [
+          'В жизни я не имею определенных целей и намерений',
+          'В жизни я имею очень ясные цели и намерения'
+        ]
+      },
+      {
+        id: 4,
+        statements: [
+          'Моя жизнь представляется мне крайне бессмысленной и бесцельной',
+          'Моя жизнь представляется мне вполне осмысленной и целеустремленной.'
+        ]
+      },
+      {
+        id: 5,
+        statements: [
+          'Каждый день кажется мне всегда новым и непохожим на другие',
+          'Каждый день кажется мне совершенно похожим на все другие.'
+        ]
+      },
+      {
+        id: 6,
+        statements: [
+          'Когда я уйду на пенсию, я займусь интересными вещами, которыми всегда мечтал заняться',
+          'Когда я уйду на пенсию, я постараюсь не обременять себя никакими заботами.'
+        ]
+      },
+      {
+        id: 7,
+        statements: [
+          'Моя жизнь сложилась именно так, как я мечтал',
+          'Моя жизнь сложилась совсем не так, как я мечтал.'
+        ]
+      },
+      {
+        id: 8,
+        statements: [
+          'Я не добился успехов в осуществлении своих жизненных планов.',
+          'Я осуществил многое из того, что было мною запланировано в жизни.'
+        ]
+      },
+      {
+        id: 9,
+        statements: [
+          'Моя жизнь пуста и неинтересна.',
+          'Моя жизнь наполнена интересными делами'
+        ]
+      },
+      {
+        id: 10,
+        statements: [
+          'Если бы мне пришлось подводить сегодня итог моей жизни, то я бы сказал, что она была вполне осмысленной.',
+          'Если бы мне пришлось сегодня подводить итог моей жизни, то я бы сказал, что она не имела смысла.'
+        ]
+      },
+      {
+        id: 11,
+        statements: [
+          'Если бы я мог выбирать, то я бы построил свою жизнь совершенно иначе.',
+          'Если бы я мог выбирать, то я бы прожил жизнь ещё раз так же, как живу сейчас.'
+        ]
+      },
+      {
+        id: 12,
+        statements: [
+          'Когда я смотрю на окружающий меня мир, он часто приводит меня в растерянность и беспокойство.',
+          'Когда я смотрю на окружающий меня мир, он совсем не вызывает у меня беспокойства и растерянности.'
+        ]
+      },
+      {
+        id: 13,
+        statements: [
+          'Я человек очень обязательный.',
+          'Я человек совсем не обязательный.'
+        ]
+      },
+      {
+        id: 14,
+        statements: [
+          'Я полагаю, что человек имеет возможность осуществить свой жизненный выбор по своему желанию.',
+          'Я полагаю, что человек лишен возможности выбирать из-за влияния природных способностей и обстоятельств.'
+        ]
+      },
+      {
+        id: 15,
+        statements: [
+          'Я определенно могу назвать себя целеустремленным человеком.',
+          'Я не могу назвать себя целеустремленным человеком.'
+        ]
+      },
+      {
+        id: 16,
+        statements: [
+          'В жизни я ещё не нашёл своего призвания и ясных целей.',
+          'В жизни я нашёл своё призвание и цели.'
+        ]
+      },
+      {
+        id: 17,
+        statements: [
+          'Мои жизненные взгляды ещё не определились.',
+          'Мои жизненные взгляды вполне определились.'
+        ]
+      },
+      {
+        id: 18,
+        statements: [
+          'Я считаю, что мне удалось найти призвание и интересные цели в жизни.',
+          'Я едва ли способен найти призвание и интересные цели в жизни.'
+        ]
+      },
+      {
+        id: 19,
+        statements: [
+          'Моя жизнь в моих руках, и я сам управляю ею.',
+          'Моя жизнь не подвластна мне и она управляется внешними событиями.'
+        ]
+      },
+      {
+        id: 20,
+        statements: [
+          'Мои повседневные дела приносят мне удовольствие и удовлетворение',
+          'Мои повседневные дела приносят мне сплошные неприятности и переживания.'
+        ]
+      }
+    ];
+
+    // Номера пунктов, которые переводятся в восходящую шкалу 1..7
+    const ascendingItems = [1, 3, 4, 8, 9, 11, 12, 16, 17];
+
+    // Субшкалы: массивы с номерами вопросов
+    const subscales = {
+      'Цели в жизни': [3, 4, 10, 16, 17, 18],
+      'Процесс жизни': [1, 2, 4, 5, 7, 9],
+      'Результативность жизни': [8, 9, 10, 12, 20],
+      'Локус контроля — Я': [1, 15, 16, 19],
+      'Локус контроля — жизнь': [7, 10, 11, 14, 18, 19]
+    };
+
+    // Нормативные средние значения и стандартные отклонения (среднее по мужчинам и женщинам)
+    const norms = {
+      'Цели в жизни': { mean: (32.90 + 29.38) / 2, sd: (5.92 + 6.24) / 2 },
+      'Процесс жизни': { mean: (31.09 + 28.80) / 2, sd: (4.44 + 6.14) / 2 },
+      'Результативность жизни': { mean: (25.46 + 23.30) / 2, sd: (4.30 + 4.95) / 2 },
+      'Локус контроля — Я': { mean: (21.13 + 18.58) / 2, sd: (3.85 + 4.30) / 2 },
+      'Локус контроля — жизнь': { mean: (30.14 + 28.70) / 2, sd: (5.80 + 6.10) / 2 },
+      'Общий показатель': { mean: (103.10 + 95.76) / 2, sd: (15.03 + 16.54) / 2 }
+    };
+
+    // Ссылки на DOM-элементы
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const testScreen    = document.getElementById('test-screen');
+    const resultScreen  = document.getElementById('result-screen');
+    const startBtn      = document.getElementById('start-btn');
+    const submitBtn     = document.getElementById('submit-btn');
+    const retakeBtn     = document.getElementById('retake-btn');
+    const downloadBtn   = document.getElementById('download-btn');
+    const progressText  = document.getElementById('progress-text');
+    const progressBar   = document.getElementById('progress-bar');
+    const testForm      = document.getElementById('test-form');
+    const warningMsg    = document.getElementById('warning-message');
+    const resultsContainer = document.getElementById('results-container');
+
+    // Новый контейнер и кнопки для показа одного вопроса за раз
+    const questionContainer = document.getElementById('question-container');
+    const prevBtn = document.getElementById('prev-btn');
+
+    // Текущий индекс вопроса и яркие градиенты для карточек
+    let currentIndex = 0;
+    const gradients = [
+      'from-pink-500 via-red-500 to-yellow-500',
+      'from-green-400 via-blue-500 to-purple-600',
+      'from-indigo-500 via-purple-500 to-pink-500',
+      'from-yellow-400 via-orange-500 to-red-500',
+      'from-teal-400 via-blue-500 to-indigo-600',
+      'from-red-400 via-pink-500 to-purple-600',
+      'from-purple-500 via-indigo-500 to-blue-500',
+      'from-orange-500 via-pink-500 to-purple-500',
+      'from-blue-500 via-teal-400 to-green-400',
+      'from-pink-400 via-purple-500 to-indigo-600'
+    ];
+
+    // Хранилище ответов: index соответствует id вопроса (1-based), значение — выбранный индекс 0..6
+    let answers = {};
+
+    // Отрисовка вопросов
+    function renderQuestions() {
+      testForm.innerHTML = '';
+      questions.forEach(q => {
+        // контейнер для вопроса
+        const card = document.createElement('div');
+        card.className = 'bg-white shadow rounded p-4 space-y-3';
+
+        // номер вопроса
+        const title = document.createElement('h3');
+        title.className = 'font-semibold';
+        title.textContent = `${q.id}.`;
+        card.appendChild(title);
+
+        // контейнер с утверждениями
+        const statementsContainer = document.createElement('div');
+        statementsContainer.className = 'flex flex-col md:flex-row md:justify-between md:items-start gap-2';
+
+        const left = document.createElement('div');
+        left.className = 'md:w-1/2';
+        left.textContent = q.statements[0];
+        const right = document.createElement('div');
+        right.className = 'md:w-1/2 text-right';
+        right.textContent = q.statements[1];
+
+        statementsContainer.appendChild(left);
+        statementsContainer.appendChild(right);
+        card.appendChild(statementsContainer);
+
+        // радиокнопки для шкалы 3-2-1-0-1-2-3
+        const scaleContainer = document.createElement('div');
+        scaleContainer.className = 'flex justify-between mt-2';
+
+        for (let i = 0; i < 7; i++) {
+          const label = document.createElement('label');
+          label.className = 'flex flex-col items-center w-full cursor-pointer';
+          const input = document.createElement('input');
+          input.type = 'radio';
+          input.name = `q${q.id}`;
+          input.value = i; // 0..6
+          input.className = 'mb-1';
+          // сохранение выбора
+          input.addEventListener('change', () => {
+            answers[q.id] = parseInt(input.value);
+            updateProgress();
+          });
+
+          // подпись: -3 -2 -1 0 1 2 3
+          const labels = ['3', '2', '1', '0', '1', '2', '3'];
+          const span = document.createElement('span');
+          span.className = 'text-xs';
+          span.textContent = labels[i];
+
+          label.appendChild(input);
+          label.appendChild(span);
+          scaleContainer.appendChild(label);
+        }
+
+        card.appendChild(scaleContainer);
+        testForm.appendChild(card);
+      });
+    }
+
+    // Обновление прогресса и кнопки отправки
+    function updateProgress() {
+      const answeredCount = Object.keys(answers).length;
+      progressText.textContent = `Ответы: ${answeredCount} из ${questions.length}`;
+      const percent = (answeredCount / questions.length) * 100;
+      progressBar.style.width = `${percent}%`;
+      if (answeredCount === questions.length) {
+        submitBtn.disabled = false;
+        warningMsg.classList.add('hidden');
+      } else {
+        submitBtn.disabled = true;
+      }
+    }
+
+    // Вычисление сырого балла для каждой шкалы
+    function computeScores() {
+      const scores = {};
+      // Инициализируем субшкалы нулём
+      for (const scale in subscales) {
+        scores[scale] = 0;
+      }
+      let total = 0;
+      // Перебираем вопросы
+      questions.forEach(q => {
+        const idx = answers[q.id]; // индекс 0..6
+        // Пропускаем неотвеченные (не должно быть)  
+        if (idx === undefined) return;
+        let value;
+        if (ascendingItems.includes(q.id)) {
+          // восходящая шкала: 1..7
+          value = idx + 1;
+        } else {
+          // нисходящая шкала: 7..1
+          value = 7 - idx;
+        }
+        total += value;
+        // Добавляем к каждой соответствующей субшкале
+        for (const scale in subscales) {
+          if (subscales[scale].includes(q.id)) {
+            scores[scale] += value;
+          }
+        }
+      });
+      scores['Общий показатель'] = total;
+      return scores;
+    }
+
+    // Обновление прогресса: считает количество отвеченных вопросов и ширину полосы
+    function updateProgressCounter() {
+      const answeredCount = Object.keys(answers).length;
+      progressText.textContent = `Вопрос ${currentIndex + 1} из ${questions.length}`;
+      const percent = (answeredCount / questions.length) * 100;
+      progressBar.style.width = `${percent}%`;
+    }
+
+    // Отображение одного вопроса
+    function showQuestion(index) {
+      currentIndex = index;
+      const q = questions[index];
+      // Очистить контейнер
+      questionContainer.innerHTML = '';
+      // Создать карточку с градиентом и плавным появлением
+      const card = document.createElement('div');
+      card.className = 'question-card w-full rounded-xl shadow-lg p-6 text-white overflow-hidden transition-all duration-500 ease-in-out opacity-0 translate-y-4';
+      // Применить градиент из списка
+      const gradientClasses = gradients[index % gradients.length].split(' ');
+      card.classList.add('bg-gradient-to-r');
+      gradientClasses.forEach(cls => card.classList.add(cls));
+
+      // Заголовок
+      const title = document.createElement('h3');
+      title.className = 'text-lg font-bold mb-4';
+      title.textContent = `Вопрос ${q.id}`;
+      card.appendChild(title);
+
+      // Текст утверждений
+      const statementsWrapper = document.createElement('div');
+      statementsWrapper.className = 'flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 mb-6';
+      const left = document.createElement('div');
+      left.className = 'sm:w-1/2';
+      left.textContent = q.statements[0];
+      const right = document.createElement('div');
+      right.className = 'sm:w-1/2 sm:text-right';
+      right.textContent = q.statements[1];
+      statementsWrapper.appendChild(left);
+      statementsWrapper.appendChild(right);
+      card.appendChild(statementsWrapper);
+
+      // Шкала в виде ползунка
+      const scaleWrapper = document.createElement('div');
+      scaleWrapper.className = 'w-full';
+      // Метки значений
+      const labelsContainer = document.createElement('div');
+      labelsContainer.className = 'flex justify-between mb-1 text-xs font-medium';
+      const labelTexts = ['3','2','1','0','1','2','3'];
+      labelTexts.forEach(txt => {
+        const span = document.createElement('span');
+        span.textContent = txt;
+        labelsContainer.appendChild(span);
+      });
+      scaleWrapper.appendChild(labelsContainer);
+      // Ползунок
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.min = 0;
+      slider.max = 6;
+      slider.step = 1;
+      slider.className = 'w-full h-2 rounded-lg appearance-none cursor-pointer bg-white bg-opacity-30 backdrop-blur-sm';
+      // Сохранённое значение или центр (3)
+      slider.value = (answers[q.id] !== undefined) ? answers[q.id] : 3;
+
+      // Обновляем стиль ползунка (цвет ручки)
+      slider.style.accentColor = '#ffffff';
+
+      slider.addEventListener('input', () => {
+        // При перетаскивании не нужно обновлять ответ
+      });
+      slider.addEventListener('change', () => {
+        // Сохраняем ответ
+        answers[q.id] = parseInt(slider.value);
+        updateProgressCounter();
+        updateNavButtons();
+        // Автоматически переходим к следующему вопросу или показываем результат
+        setTimeout(() => {
+          nextQuestion();
+        }, 200);
+      });
+      scaleWrapper.appendChild(slider);
+      card.appendChild(scaleWrapper);
+
+      // Добавляем в контейнер
+      questionContainer.appendChild(card);
+      // Запускаем анимацию появления: убираем начальные классы
+      requestAnimationFrame(() => {
+        card.classList.remove('opacity-0', 'translate-y-4');
+      });
+
+      // Обновляем прогресс и кнопки
+      updateProgressCounter();
+      updateNavButtons();
+    }
+
+    // Обновление состояния навигационных кнопок
+    function updateNavButtons() {
+      // Обновляем только кнопку назад. Кнопка «Назад» отключена на первом вопросе
+      if (currentIndex === 0) {
+        prevBtn.disabled = true;
+        prevBtn.classList.add('opacity-50', 'cursor-not-allowed');
+      } else {
+        prevBtn.disabled = false;
+        prevBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    // Переход к следующему вопросу или показу результата
+    function nextQuestion() {
+      const currentId = questions[currentIndex].id;
+      // Если ответ не выбран, ничего не делаем
+      if (answers[currentId] === undefined) {
+        return;
+      }
+      if (currentIndex < questions.length - 1) {
+        showQuestion(currentIndex + 1);
+      } else {
+        // Все вопросы пройдены
+        showResults();
+        showScreen(resultScreen);
+      }
+    }
+
+    // Переход к предыдущему вопросу
+    function prevQuestion() {
+      if (currentIndex > 0) {
+        showQuestion(currentIndex - 1);
+      }
+    }
+
+    // Определение категории (низкий/средний/высокий) по нормам
+    function categorize(score, norm) {
+      const lowThreshold = norm.mean - norm.sd;
+      const highThreshold = norm.mean + norm.sd;
+      if (score < lowThreshold) return 'Низкий';
+      if (score > highThreshold) return 'Высокий';
+      return 'Средний';
+    }
+
+    // Показ результатов
+    function showResults() {
+      const scores = computeScores();
+      resultsContainer.innerHTML = '';
+      // Создаём список результатов
+      let idx = 0;
+      for (const scale in scores) {
+        const value = scores[scale];
+        const norm = norms[scale];
+        let category = '';
+        if (norm) {
+          category = categorize(value, norm);
+        }
+        const item = document.createElement('div');
+        // Используем яркие градиенты для карточек результатов
+        const grad = gradients[idx % gradients.length].split(' ');
+        item.className = 'rounded-xl shadow-lg p-4 text-white mb-2 bg-gradient-to-r';
+        grad.forEach(cls => item.classList.add(cls));
+        const title = document.createElement('h4');
+        title.className = 'font-bold text-lg';
+        title.textContent = `${scale}: ${value}`;
+        const cat = document.createElement('p');
+        cat.className = 'text-sm mt-1';
+        if (category) {
+          cat.textContent = `Уровень: ${category.toLowerCase()}.`;
+        }
+        // Интерпретация текст для каждой субшкалы
+        const interp = document.createElement('p');
+        interp.className = 'text-sm opacity-90 mt-1';
+        interp.textContent = interpretScale(scale, category);
+        item.appendChild(title);
+        item.appendChild(cat);
+        item.appendChild(interp);
+        resultsContainer.appendChild(item);
+        idx++;
+      }
+    }
+
+    // Текст интерпретации для каждой шкалы
+    function interpretScale(scale, category) {
+      switch (scale) {
+        case 'Цели в жизни':
+          return 'Показывает наличие или отсутствие целей в будущем, которые придают жизни осмысленность, направленность и временную перспективу.';
+        case 'Процесс жизни':
+          return 'Отражает, насколько интересным, насыщенным и наполненным смыслом воспринимается сам процесс жизни.';
+        case 'Результативность жизни':
+          return 'Оценивает удовлетворенность прожитой частью жизни и ощущение продуктивности.';
+        case 'Локус контроля — Я':
+          return 'Характеризует представление о себе как о хозяине собственной жизни и веру в возможность управлять событиями.';
+        case 'Локус контроля — жизнь':
+          return 'Определяет убежденность в том, что жизнь в целом управляемая или, напротив, фаталистический взгляд.';
+        case 'Общий показатель':
+          return 'Суммарный индикатор общей осмысленности жизни.';
+        default:
+          return '';
+      }
+    }
+
+    // Скачивание результатов в формате JSON
+    function downloadResults() {
+      const scores = computeScores();
+      const dataStr = JSON.stringify(scores, null, 2);
+      const blob = new Blob([dataStr], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'sjo_results.json';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    // Переключение видимости экранов
+    function showScreen(screen) {
+      // скрываем все
+      welcomeScreen.classList.add('hidden');
+      testScreen.classList.add('hidden');
+      resultScreen.classList.add('hidden');
+      screen.classList.remove('hidden');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+
+    // Сброс теста
+    function resetTest() {
+      answers = {};
+      currentIndex = 0;
+      // Отображаем первый вопрос
+      showQuestion(0);
+    }
+
+    // События
+    startBtn.addEventListener('click', () => {
+      resetTest();
+      showScreen(testScreen);
+    });
+
+    // Кнопки навигации
+    prevBtn.addEventListener('click', prevQuestion);
+
+    retakeBtn.addEventListener('click', () => {
+      resetTest();
+      showScreen(testScreen);
+    });
+
+    downloadBtn.addEventListener('click', downloadResults);
+
+    // Инициализация: отображение приветствия
+    // showQuestion(0) вызывается внутри resetTest при старте теста
+  </script>
+</body>
+</html>
